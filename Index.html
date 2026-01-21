@@ -4,156 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TikTok Downloader</title>
-
 <style>
-body{
-  font-family:Arial,sans-serif;
-  background:#0f0f0f;
-  min-height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  color:#fff;
-}
-.box{
-  background:#1c1c1c;
-  padding:25px;
-  width:100%;
-  max-width:420px;
-  border-radius:14px;
-  box-shadow:0 10px 30px rgba(0,0,0,.5);
-  text-align:center;
-}
-input{
-  width:100%;
-  padding:12px;
-  border-radius:8px;
-  border:none;
-  outline:none;
-}
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
-}
-.main{background:#fe2c55;color:#fff}
-.hd{background:#fe2c55;color:#fff}
-.sd{background:#333;color:#fff}
-.mp3{background:#25f4ee;color:#000}
-.result button{margin-top:6px}
-small{color:#aaa}
+    body { font-family: Arial; background:#f0f2f5; display:flex; flex-direction:column; align-items:center; padding:2rem;}
+    h1 { color:#333; }
+    input { width:80%; padding:0.5rem; margin:0.5rem 0; border-radius:5px; border:1px solid #ccc;}
+    button { padding:0.5rem 1rem; margin:0.5rem; border:none; border-radius:5px; background:#4CAF50; color:white; cursor:pointer;}
+    button:hover { background:#45a049;}
+    .result { margin-top:1rem; }
 </style>
 </head>
-
 <body>
-<div class="box">
-  <h2>TikTok Downloader</h2>
-  <small>Tanpa watermark</small><br><br>
+<h1>TikTok Downloader</h1>
+<input type="text" id="urlInput" placeholder="Paste URL TikTok di sini" />
+<button onclick="downloadVideo('normal')">Download Video</button>
+<button onclick="downloadVideo('hd')">Download Video HD</button>
+<button onclick="downloadVideo('music')">Download Audio</button>
 
-  <input id="url" placeholder="Tempel link TikTok">
-  <button class="main" onclick="getVideo()">Download</button>
-
-  <div class="result" id="res"></div>
-</div>
+<div class="result" id="result"></div>
 
 <script>
-/* =========================
-   ANTI DEBUG (LEVEL TINGGI)
-========================= */
-(function(){
-  const block = () => {
-    document.body.innerHTML = "";
-    document.body.style.background="#000";
-  };
-
-  // block devtools key
-  document.addEventListener("keydown", e=>{
-    if(
-      e.keyCode===123 || // F12
-      (e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key.toUpperCase())) ||
-      (e.ctrlKey && e.key.toUpperCase()==="U")
-    ){
-      e.preventDefault();
-      block();
+async function downloadVideo(type){
+    const url = document.getElementById('urlInput').value.trim();
+    if(!url) return alert("Masukkan URL TikTok dulu!");
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = "Processing...";
+    
+    try {
+        const res = await fetch(`/api/tiktok?url=${encodeURIComponent(url)}&type=${type}`);
+        const data = await res.json();
+        if(data.success){
+            const a = document.createElement('a');
+            a.href = data.link;
+            a.download = ""; // langsung download
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            resultDiv.innerHTML = "Download dimulai!";
+        } else {
+            resultDiv.innerHTML = "Gagal: " + data.message;
+        }
+    } catch(err){
+        resultDiv.innerHTML = "Error: " + err.message;
     }
-  });
-
-  // detect devtools open
-  setInterval(()=>{
-    const t = new Date();
-    debugger;
-    if(new Date() - t > 100) block();
-  },1000);
-})();
-
-/* =========================
-   GHOST ENC API (ADVANCED)
-========================= */
-function ghostApi(){
-  const k = [118,118,116,108,114,45,44,44,110,118,114,114,122,45,104,114,112,45,98,113,106,64,118,115,109,62];
-  let s = "";
-  for(let i=k.length-1;i>=0;i--){
-    s += String.fromCharCode(k[i]-7);
-  }
-  return s;
-}
-
-/* =========================
-   AUTO PASTE
-========================= */
-(async ()=>{
-  try{
-    const t = await navigator.clipboard.readText();
-    if(t.includes("tiktok")) document.getElementById("url").value=t;
-  }catch{}
-})();
-
-/* =========================
-   FETCH & RENDER
-========================= */
-async function getVideo(){
-  const url = document.getElementById("url").value.trim();
-  const box = document.getElementById("res");
-  box.innerHTML="⏳ Loading...";
-
-  if(!url) return alert("Masukkan link TikTok!");
-
-  try{
-    const api = ghostApi();
-    const r = await fetch(api + encodeURIComponent(url));
-    const j = await r.json();
-
-    if(j.code!==0){
-      box.innerHTML="❌ Gagal ambil data";
-      return;
-    }
-
-    box.innerHTML = `
-      <button class="hd" onclick="dl('${j.data.hdplay}')">⬇ Video HD</button>
-      <button class="sd" onclick="dl('${j.data.play}')">⬇ Video No WM</button>
-      <button class="mp3" onclick="dl('${j.data.music}')">⬇ MP3</button>
-    `;
-  }catch{
-    box.innerHTML="❌ Error";
-  }
-}
-
-/* =========================
-   FORCE DOWNLOAD
-========================= */
-function dl(u){
-  const a=document.createElement("a");
-  a.href=u;
-  a.download="";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }
 </script>
-
 </body>
 </html>
